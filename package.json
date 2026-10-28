@@ -1,0 +1,9 @@
+{
+  "name": "arborescento",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "scripts": { "start": "node server.mjs", "test": "node tests/smoke.mjs" },
+  "devDependencies": { "playwright": "1.62.1", "jszip": "3.10.1" }
+}
