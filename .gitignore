@@ -1,0 +1,4 @@
+tests/generated/
+tests/output/
+node_modules/
+__pycache__/

@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; worker-src 'self' blob:; connect-src 'self' blob:; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="description" content="Listez l’arborescence d’un dossier, explorez-la, visualisez-la et exportez-la vers Excel, directement dans votre navigateur.">
+  <meta name="theme-color" content="#102d41">
+  <title>Arborescento — Arborescence de dossiers vers Excel</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="topbar"><div class="topbar-inner">
+    <a class="brand" href="./" aria-label="Arborescento">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="4" width="32" height="32" rx="11"/><path d="M13 12h6m-3 0v16m0-10h5m-5 10h5"/><path d="M21 15.5h7v5h-7zm0 10h7v5h-7z"/></svg>
+      <span><strong>Arborescento</strong></span>
+    </a>
+    <div class="top-actions"><div class="language" id="language" role="group" aria-label="Language / Langue"><button type="button" id="lang-en" data-lang="en" lang="en" aria-pressed="false">EN</button><button type="button" id="lang-fr" data-lang="fr" lang="fr" aria-pressed="true" class="selected">FR</button></div></div>
+  </div></header>
+  <div class="shell">
+    <main>
+      <section class="intro">
+        <div class="intro-copy"><h1>ARBORESCENTO</h1>
+          <p class="lead" data-i18n="lead">L’arborescence de vos dossiers, prête pour Excel. Explorez, visualisez et exportez.</p>
+        </div>
+        <div class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 4-4 7-8 9-4-2-8-5-8-9V6z"/><path d="m8 12 3 3 5-6"/></svg><div><strong data-i18n="privacy">Traitement 100 % local</strong><p data-i18n="privacyDetail">Seuls les noms, tailles et dates sont lus. Aucun fichier n’est ouvert ni envoyé en ligne.</p></div></div>
+      </section>
+
+      <ol class="steps" aria-label="Étapes" id="steps">
+        <li class="current"><span>1</span><b data-i18n="step1">Choisir un dossier</b></li>
+        <li><span>2</span><b data-i18n="step2">Explorer et filtrer</b></li>
+        <li><span>3</span><b data-i18n="step3">Exporter Excel</b></li>
+      </ol>
+
+      <section class="upload-card" id="dropzone" aria-labelledby="upload-title">
+        <div class="upload-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M6 13a3 3 0 0 1 3-3h9l4 4h17a3 3 0 0 1 3 3v19a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3z"/><path d="M17 23h6m-3 0v9h6m-6-5h6"/><path d="M27 21.5h6v4h-6zm0 8h6v4h-6z"/></svg></div>
+        <h2 id="upload-title" data-i18n="dropTitle">Déposez un dossier ici</h2>
+        <p data-i18n="dropHint">ou choisissez un dossier sur votre appareil ou sur un lecteur réseau</p>
+        <div class="upload-actions">
+          <button type="button" class="button primary" id="choose" disabled data-i18n="choose">Choisir un dossier</button>
+          <button type="button" class="button text-button" id="demo" disabled data-i18n="demo">Essayer un exemple</button>
+        </div>
+        <input id="folder-input" type="file" webkitdirectory multiple class="sr-only" tabindex="-1" aria-hidden="true">
+        <div class="scan-options">
+          <label class="depth-option"><span data-i18n="depthLabel">Profondeur max. (niveaux)</span><input id="max-depth" type="number" min="1" max="50" step="1" value="7" inputmode="numeric"></label>
+          <label class="check"><input id="grouping" type="checkbox" checked><span data-i18n="groupingLabel">Regrouper les fichiers nombreux d’un même type</span></label>
+          <details class="thresholds" id="thresholds-panel"><summary data-i18n="thresholdsTitle">Seuils de regroupement</summary>
+            <p data-i18n="thresholdsHint">Dans un dossier, les fichiers d’une extension listée sont regroupés sur une ligne « [......] » à partir de ce nombre. Vos réglages sont mémorisés dans ce navigateur.</p>
+            <ul class="threshold-list" id="threshold-list"></ul>
+            <div class="threshold-add">
+              <label><span data-i18n="extensionLabel">Extension</span><input id="threshold-ext" type="text" placeholder=".pdf" maxlength="21" autocomplete="off"></label>
+              <label><span data-i18n="countLabel">À partir de</span><input id="threshold-count" type="number" min="1" step="1" value="5" inputmode="numeric"></label>
+              <button type="button" class="button secondary" id="threshold-add" data-i18n="add">Ajouter</button>
+              <button type="button" class="button text-button" id="threshold-reset" data-i18n="resetDefaults">Valeurs par défaut</button>
+            </div>
+          </details>
+        </div>
+        <p class="upload-note" id="browser-note"></p>
+      </section>
+
+      <section class="file-card" id="folder-card" hidden>
+        <div class="file-description"><span class="file-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><div><h2 id="folder-name"></h2><p id="folder-meta"></p></div></div>
+        <button type="button" id="clear" class="button secondary" data-i18n="clear">Effacer / changer</button>
+      </section>
+      <div id="status-box" class="status-box" role="status" aria-live="polite" aria-atomic="true"><p id="status">Chargement de l’outil…</p></div>
+      <div class="progress-card" id="progress-card" hidden>
+        <div><span id="progress-label"></span><button type="button" class="button text-button" id="cancel" data-i18n="cancel">Annuler</button></div>
+        <progress id="progress"></progress>
+      </div>
+
+      <section id="results" aria-labelledby="results-title" hidden>
+        <div class="results-heading"><div><p class="eyebrow" data-i18n="preview">ARBORESCENCE</p><h2 id="results-title" data-i18n="resultsTitle">Explorez votre dossier</h2></div><p id="elapsed"></p></div>
+        <div class="export-bar">
+          <div class="export-copy"><h3 data-i18n="exportTitle">Votre fichier Excel</h3><p data-i18n="exportHint">Même mise en page que le script Python : une colonne par niveau, taille, date et remarques.</p></div>
+          <div class="export-options">
+            <label class="root-path"><span data-i18n="rootPathLabel">Chemin du dossier, pour les liens cliquables (facultatif)</span><input id="root-path" type="text" placeholder="P:\Projets\12345" autocomplete="off" spellcheck="false"></label>
+            <label class="check"><input id="export-filtered" type="checkbox"><span data-i18n="exportFiltered">Exporter seulement la vue filtrée</span></label>
+          </div>
+          <button type="button" id="download" class="button primary" disabled data-i18n="download">Enregistrer Excel</button>
+        </div>
+        <div class="stats"><div><strong id="count-dirs">0</strong><span id="count-dirs-label">dossiers</span></div><div><strong id="count-files">0</strong><span id="count-files-label">fichiers</span></div><div><strong id="count-size">0</strong><span data-i18n="sizeLabel">volume total</span></div></div>
+        <details id="diagnostics" class="diagnostics" hidden><summary id="diagnostics-title"></summary><ul id="warning-list"></ul></details>
+
+        <div class="tabs" role="tablist" id="tabs" aria-label="Vues">
+          <button type="button" role="tab" id="tab-explorer" aria-controls="panel-explorer" aria-selected="true" data-i18n="tabExplorer">Explorer</button>
+          <button type="button" role="tab" id="tab-viz" aria-controls="panel-viz" aria-selected="false" tabindex="-1" data-i18n="tabViz">Visualiser</button>
+          <button type="button" role="tab" id="tab-stats" aria-controls="panel-stats" aria-selected="false" tabindex="-1" data-i18n="tabStats">Statistiques</button>
+        </div>
+        <div class="filters" id="filters">
+          <label class="search"><span data-i18n="searchLabel">Recherche (nom ou chemin, * accepté)</span><input id="search" type="search" placeholder="ex. *rapport*.pdf" data-placeholder="searchPlaceholder"></label>
+          <label><span data-i18n="fromLabel">Modifié depuis le</span><input id="date-from" type="date"></label>
+          <label><span data-i18n="toLabel">Jusqu’au</span><input id="date-to" type="date"></label>
+          <label><span data-i18n="minSizeLabel">Taille min.</span><select id="min-size"></select></label>
+          <label><span data-i18n="depthShownLabel">Niveaux affichés</span><select id="depth-shown"></select></label>
+        </div>
+        <div class="chips" id="extension-chips" role="group" aria-label="Extensions"></div>
+        <div class="table-info"><span id="visible-count" role="status"></span><button type="button" id="reset-filters" class="button text-button" data-i18n="resetFilters">Réinitialiser les filtres</button></div>
+
+        <section class="panel" id="panel-explorer" role="tabpanel" aria-labelledby="tab-explorer">
+          <div class="panel-tools"><button type="button" class="button secondary" id="expand-all" data-i18n="expandAll">Tout déplier</button><button type="button" class="button secondary" id="collapse-all" data-i18n="collapseAll">Tout replier</button></div>
+          <div class="tree" id="tree">
+            <div class="tree-head" aria-hidden="true"><span data-i18n="nameHeading">Nom</span><span data-i18n="sizeHeading">Taille</span><span data-i18n="filesHeading">Fichiers</span><span data-i18n="dateHeading">Dernière modif.</span><span data-i18n="remarkHeading">Remarque</span></div>
+            <div class="tree-scroll" id="tree-scroll" tabindex="0"><div class="tree-body" id="tree-body"></div></div>
+          </div>
+        </section>
+
+        <section class="panel" id="panel-viz" role="tabpanel" aria-labelledby="tab-viz" hidden>
+          <div class="viz-toolbar">
+            <div class="segmented" role="group" id="viz-mode" aria-label="Vue">
+              <button type="button" data-value="map" aria-pressed="true" data-i18n="vizMap">Carte mentale</button><button type="button" data-value="sunburst" aria-pressed="false" data-i18n="vizSunburst">Sunburst</button><button type="button" data-value="treemap" aria-pressed="false" data-i18n="vizTreemap">Treemap</button>
+            </div>
+            <div class="segmented" role="group" id="viz-color" aria-label="Couleur">
+              <button type="button" data-value="type" aria-pressed="true" data-i18n="colorType">Couleur : type</button><button type="button" data-value="age" aria-pressed="false" data-i18n="colorAge">Couleur : âge</button>
+            </div>
+            <div class="segmented" role="group" id="viz-measure" aria-label="Mesure">
+              <button type="button" data-value="size" aria-pressed="true" data-i18n="measureSize">Taille</button><button type="button" data-value="count" aria-pressed="false" data-i18n="measureCount">Nombre de fichiers</button>
+            </div>
+            <div class="zoom" id="zoom"><button type="button" class="button secondary" id="zoom-out" aria-label="Zoom −">−</button><button type="button" class="button secondary" id="zoom-in" aria-label="Zoom +">+</button></div>
+          </div>
+          <p class="viz-hint" id="viz-hint"></p>
+          <div class="viz" id="viz"></div>
+          <ul class="legend" id="legend"></ul>
+        </section>
+
+        <section class="panel" id="panel-stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
+          <div id="stats-content"></div>
+        </section>
+      </section>
+
+      <details class="help"><summary data-i18n="helpTitle">Fonctionnement et limites</summary><div>
+        <p data-i18n="helpLocal">Le dossier est lu dans votre navigateur : seuls les noms, tailles et dates de modification sont lus, jamais le contenu des fichiers. Rien n’est envoyé en ligne. Les bibliothèques sont incluses avec l’outil.</p>
+        <p data-i18n="helpBrowsers">Edge et Chrome : la profondeur max. évite de lire les niveaux non affichés, les dossiers vides apparaissent et vous choisissez où enregistrer l’Excel. Firefox et Safari : le navigateur liste tout le dossier avant l’analyse, les dossiers vides n’apparaissent pas (sauf par glisser-déposer) et l’Excel est téléchargé. Le navigateur peut afficher « Importer N fichiers sur ce site ? » : rien n’est importé, il demande seulement l’accès à la liste.</p>
+        <p data-i18n="helpPaths">Le navigateur ne donne jamais le chemin complet du dossier. Pour obtenir des liens cliquables vers les sous-dossiers dans l’Excel, collez ce chemin (ex. P:\Projets\12345) dans le champ prévu avant l’export.</p>
+        <p data-i18n="helpDates">La date d’un dossier est celle du fichier le plus récent qu’il contient, sous-dossiers compris : le navigateur ne fournit pas la date de modification des dossiers.</p>
+        <p data-i18n="helpIgnored">Comme le script Python, les fichiers temporaires et système (Thumbs.db, desktop.ini, .DS_Store, ~$…, .log, .tmp) sont ignorés et comptés dans les informations de lecture.</p>
+        <p data-i18n="helpPython">Pour un très gros lecteur réseau, le script Python fourni dans le dépôt (dossier python/) produit le même Excel.</p>
+        <p class="dependencies">ExcelJS 4.4.0 (MIT)</p>
+      </div></details>
+    </main>
+    <footer>
+      <div class="footer-meta"><span>Anthony Chéruel · v0.1 · <span data-i18n="updated">Dernière mise à jour :</span> <time datetime="2026-10-28" data-i18n="updatedDate">28 octobre 2026</time></span>
+        <a class="github-link" href="https://github.com/acheruel/Arborescento" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.23c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.7.83.58A12 12 0 0 0 12 .5z"/></svg><span data-i18n="github">Code source sur GitHub</span></a>
+      </div>
+    </footer>
+  </div>
+  <noscript>JavaScript est requis pour lire le dossier localement et générer Excel.</noscript>
+</body>
+</html>
